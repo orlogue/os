@@ -1,3 +1,5 @@
+#!/bin/bash
+
 cd "$(dirname "$0")/.."
 
 git pull
@@ -10,4 +12,4 @@ cmake ..
 
 cmake --build .
 
-echo "Сборка завершена. Исполняемый файл находится в директории build/" 
+echo "Build completed. Executable file is in build/" 

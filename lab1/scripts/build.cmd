@@ -12,5 +12,5 @@ cmake ..
 
 cmake --build .
 
-echo Сборка завершена. Исполняемый файл находится в директории build/
+echo Build completed. Executable file is in build/
 pause 
