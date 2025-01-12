@@ -6,7 +6,7 @@
 
 std::string get_platform_command(const std::string& windows_cmd, const std::string& unix_cmd) {
 #ifdef _WIN32
-    return windows_cmd;
+    return "cmd.exe /c " + windows_cmd;
 #else
     return unix_cmd;
 #endif

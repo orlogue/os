@@ -21,18 +21,18 @@ echo Configuring project...
 cmake ..
 
 echo Building project...
-cmake --build . --config Release
+cmake --build .
 
 if %ERRORLEVEL% equ 0 (
     echo Build successful!
     echo You can find:
     echo - Library in: %CD%\lib\process_lib
-    echo - Test utility in: %CD%\Release
+    echo - Test utility in: %CD%
     
     echo.
     set /p RUN_TESTS="Do you want to run tests? [y/N] "
     if /i "!RUN_TESTS!"=="y" (
-        Release\process_test.exe
+        %CD%\process_test.exe
     )
 ) else (
     echo Build failed!

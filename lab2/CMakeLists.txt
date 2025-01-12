@@ -13,3 +13,9 @@ add_executable(process_test
 )
 
 target_link_libraries(process_test PRIVATE process_lib) 
+
+add_custom_command(TARGET process_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:process_lib>
+        $<TARGET_FILE_DIR:process_test>
+)
