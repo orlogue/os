@@ -19,9 +19,13 @@ struct TempReading {
 
 class TemperatureMonitor {
 private:
-    std::string raw_log_path = "logs/raw_temp.log";
-    std::string hourly_log_path = "logs/hourly_temp.log";
-    std::string daily_log_path = "logs/daily_temp.log";
+    fs::path exe_path;
+    fs::path logs_dir;
+    fs::path temp_dir;
+    fs::path raw_log_path;
+    fs::path hourly_log_path;
+    fs::path daily_log_path;
+    fs::path sensor_file;
     std::vector<TempReading> hourly_readings;
     std::map<time_t, std::vector<double>> daily_readings;
 
@@ -122,15 +126,28 @@ private:
 
 public:
     TemperatureMonitor() {
-        fs::create_directories("logs");
+        exe_path = fs::current_path();
+        logs_dir = exe_path / "logs";
+        temp_dir = exe_path / "temp";
+        raw_log_path = logs_dir / "raw_temp.log";
+        hourly_log_path = logs_dir / "hourly_temp.log";
+        daily_log_path = logs_dir / "daily_temp.log";
+        sensor_file = temp_dir / "temperature_sensor";
+
+        try {
+            fs::create_directories(logs_dir);
+        } catch (const fs::filesystem_error& e) {
+            std::cerr << "Failed to create logs directory: " << e.what() << std::endl;
+            throw;
+        }
     }
 
     void run() {
-        std::cout << "Temperature monitor started. Reading from temp/temperature_sensor" << std::endl;
+        std::cout << "Temperature monitor started. Reading from " << sensor_file << std::endl;
         
-        std::ifstream sensorFile("temp/temperature_sensor");
+        std::ifstream sensorFile(sensor_file);
         if (!sensorFile.is_open()) {
-            std::cerr << "Failed to open sensor file" << std::endl;
+            std::cerr << "Failed to open sensor file: " << sensor_file << std::endl;
             return;
         }
 
@@ -150,7 +167,12 @@ public:
 };
 
 int main() {
-    TemperatureMonitor monitor;
-    monitor.run();
+    try {
+        TemperatureMonitor monitor;
+        monitor.run();
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
     return 0;
 } 

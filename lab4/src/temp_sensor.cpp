@@ -9,11 +9,20 @@
 namespace fs = std::filesystem;
 
 int main() {
-    fs::create_directories("temp");
+    fs::path exe_path = fs::current_path();
+    fs::path temp_dir = exe_path / "temp";
+    fs::path sensor_file = temp_dir / "temperature_sensor";
+
+    try {
+        fs::create_directories(temp_dir);
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "Failed to create temp directory: " << e.what() << std::endl;
+        return 1;
+    }
     
-    std::ofstream outFile("temp/temperature_sensor");
+    std::ofstream outFile(sensor_file);
     if (!outFile.is_open()) {
-        std::cerr << "Failed to open output file" << std::endl;
+        std::cerr << "Failed to open output file: " << sensor_file << std::endl;
         return 1;
     }
 
@@ -21,7 +30,7 @@ int main() {
     std::mt19937 gen(rd());
     std::normal_distribution<> temp_dist(20.0, 5.0);
 
-    std::cout << "Temperature sensor simulator started. Writing to temp/temperature_sensor" << std::endl;
+    std::cout << "Temperature sensor simulator started. Writing to " << sensor_file << std::endl;
 
     while (true) {
         double temperature = temp_dist(gen);
