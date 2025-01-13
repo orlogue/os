@@ -1,7 +1,27 @@
+# Build directory
 build/
-temp/
+
+# Logs directory
 logs/
+
+# Temp directory
+temp/
+
+# IDE files
 .vscode/
-.vs/
+.idea/
+
+# CMake files
+CMakeFiles/
+CMakeCache.txt
+*.cmake
+
+# Compiled files
+*.exe
+*.obj
 *.o
-*.exe 
+*.a
+*.lib
+*.dll
+*.so
+*.dylib 

@@ -19,7 +19,7 @@ int main() {
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::normal_distribution<> temp_dist(20.0, 5.0); // Mean 20°C, std dev 5°C
+    std::normal_distribution<> temp_dist(20.0, 5.0);
 
     std::cout << "Temperature sensor simulator started. Writing to temp/temperature_sensor" << std::endl;
 

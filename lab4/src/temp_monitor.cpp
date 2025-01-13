@@ -12,7 +12,6 @@
 
 namespace fs = std::filesystem;
 
-// Structure to store temperature reading
 struct TempReading {
     time_t timestamp;
     double temperature;
@@ -26,7 +25,6 @@ private:
     std::vector<TempReading> hourly_readings;
     std::map<time_t, std::vector<double>> daily_readings;
 
-    // Helper function to get formatted timestamp
     std::string getFormattedTime(time_t timestamp) {
         char buffer[26];
         struct tm* timeinfo = localtime(&timestamp);
@@ -34,11 +32,9 @@ private:
         return std::string(buffer);
     }
 
-    // Write temperature to raw log and maintain 24-hour window
     void writeToRawLog(const TempReading& reading) {
         std::vector<TempReading> readings;
         
-        // Read existing readings
         std::ifstream inFile(raw_log_path);
         time_t timestamp;
         double temp;
@@ -47,33 +43,28 @@ private:
         }
         inFile.close();
 
-        // Add new reading
         readings.push_back(reading);
 
-        // Remove readings older than 24 hours
         time_t cutoff = reading.timestamp - 24*60*60;
-        readings.erase(
-            std::remove_if(readings.begin(), readings.end(),
-                [cutoff](const TempReading& r) { return r.timestamp < cutoff; }),
-            readings.end()
-        );
-
-        // Write back to file
-        std::ofstream outFile(raw_log_path, std::ios::trunc);
+        std::vector<TempReading> filtered_readings;
         for (const auto& r : readings) {
+            if (r.timestamp >= cutoff) {
+                filtered_readings.push_back(r);
+            }
+        }
+
+        std::ofstream outFile(raw_log_path, std::ios::trunc);
+        for (const auto& r : filtered_readings) {
             outFile << r.timestamp << " " << r.temperature << std::endl;
         }
     }
 
-    // Calculate and write hourly average
     void processHourlyAverage(const TempReading& reading) {
         hourly_readings.push_back(reading);
         
-        // Get the hour of the current reading
         struct tm* timeinfo = localtime(&reading.timestamp);
         int current_hour = timeinfo->tm_hour;
         
-        // Check if we have readings for a full hour
         if (!hourly_readings.empty()) {
             timeinfo = localtime(&hourly_readings.front().timestamp);
             int first_hour = timeinfo->tm_hour;
@@ -114,19 +105,19 @@ private:
     void processDailyAverage(time_t current_time) {
         time_t current_day = current_time - current_time % (24*60*60);
         
-        for (auto it = daily_readings.begin(); it != daily_readings.end();) {
-            if (it->first < current_day) {
-                double sum = std::accumulate(it->second.begin(), it->second.end(), 0.0);
-                double average = sum / it->second.size();
+        std::map<time_t, std::vector<double>> remaining_readings;
+        for (const auto& pair : daily_readings) {
+            if (pair.first < current_day) {
+                double sum = std::accumulate(pair.second.begin(), pair.second.end(), 0.0);
+                double average = sum / pair.second.size();
 
                 std::ofstream outFile(daily_log_path, std::ios::app);
-                outFile << it->first << " " << average << std::endl;
-
-                it = daily_readings.erase(it);
+                outFile << pair.first << " " << average << std::endl;
             } else {
-                ++it;
+                remaining_readings[pair.first] = pair.second;
             }
         }
+        daily_readings = remaining_readings;
     }
 
 public:
