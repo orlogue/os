@@ -1,4 +1,6 @@
 build/
+temp/
+logs/
 .vscode/
 .vs/
 *.o
