@@ -9,6 +9,7 @@
 #include <numeric>
 #include <map>
 #include <sstream>
+#include "serial_port.h"
 
 namespace fs = std::filesystem;
 
@@ -19,13 +20,11 @@ struct TempReading {
 
 class TemperatureMonitor {
 private:
-    fs::path exe_path;
     fs::path logs_dir;
-    fs::path temp_dir;
     fs::path raw_log_path;
     fs::path hourly_log_path;
     fs::path daily_log_path;
-    fs::path sensor_file;
+    std::unique_ptr<SerialPort> serialPort;
     std::vector<TempReading> hourly_readings;
     std::map<time_t, std::vector<double>> daily_readings;
 
@@ -125,14 +124,11 @@ private:
     }
 
 public:
-    TemperatureMonitor() {
-        exe_path = fs::current_path();
-        logs_dir = exe_path / "logs";
-        temp_dir = exe_path / "temp";
+    TemperatureMonitor(const std::string& portName) {
+        logs_dir = fs::current_path() / "logs";
         raw_log_path = logs_dir / "raw_temp.log";
         hourly_log_path = logs_dir / "hourly_temp.log";
         daily_log_path = logs_dir / "daily_temp.log";
-        sensor_file = temp_dir / "temperature_sensor";
 
         try {
             fs::create_directories(logs_dir);
@@ -140,35 +136,50 @@ public:
             std::cerr << "Failed to create logs directory: " << e.what() << std::endl;
             throw;
         }
+
+        serialPort = SerialPort::create();
+        if (!serialPort->open(portName, 9600)) {
+            throw std::runtime_error("Failed to open serial port: " + portName);
+        }
     }
 
     void run() {
-        std::cout << "Temperature monitor started. Reading from " << sensor_file << std::endl;
+        std::cout << "Temperature monitor started. Reading from serial port..." << std::endl;
         
-        std::ifstream sensorFile(sensor_file);
-        if (!sensorFile.is_open()) {
-            std::cerr << "Failed to open sensor file: " << sensor_file << std::endl;
-            return;
-        }
-
+        std::string data;
         while (true) {
-            sensorFile.seekg(0);
-            TempReading reading;
-            
-            if (sensorFile >> reading.timestamp >> reading.temperature) {
-                writeToRawLog(reading);
-                processHourlyAverage(reading);
-                processDailyAverage(reading.timestamp);
+            if (serialPort->read(data)) {
+                std::istringstream iss(data);
+                TempReading reading;
+                
+                if (iss >> reading.timestamp >> reading.temperature) {
+                    writeToRawLog(reading);
+                    processHourlyAverage(reading);
+                    processDailyAverage(reading.timestamp);
+                }
             }
 
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
+
+    ~TemperatureMonitor() {
+        if (serialPort) {
+            serialPort->close();
         }
     }
 };
 
-int main() {
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        std::cout << "Usage: " << argv[0] << " <port>" << std::endl;
+        std::cout << "Example: " << argv[0] << " COM1    (on Windows)" << std::endl;
+        std::cout << "Example: " << argv[0] << " /dev/ttyUSB0    (on Unix)" << std::endl;
+        return 1;
+    }
+
     try {
-        TemperatureMonitor monitor;
+        TemperatureMonitor monitor(argv[1]);
         monitor.run();
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
