@@ -25,3 +25,6 @@ CMakeCache.txt
 *.dll
 *.so
 *.dylib 
+
+node_modules/
+temperature.db
